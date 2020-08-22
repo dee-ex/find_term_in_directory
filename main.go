@@ -11,13 +11,6 @@ import "flag"
 
 var wg sync.WaitGroup
 
-func join_str_arr(arr1, arr2 []string) []string {
-    for _, s := range arr2 {
-        arr1 = append(arr1, s)
-    }
-    return arr1
-}
-
 func walk(path string, collect  chan<- string) {
     defer wg.Done()
     files, err := ioutil.ReadDir(path)
@@ -47,10 +40,12 @@ func walk(path string, collect  chan<- string) {
 func recursion_content(path string) []string {
     collect := make(chan string, 10000)
     var content []string
-    wg.Add(1)
-    go walk(path, collect)
-    wg.Wait()
-    close(collect)
+    go func(collect chan<- string) {
+        wg.Add(1)
+        go walk(path, collect)
+        wg.Wait()
+        close(collect)
+    }(collect)
     for item := range collect {
         content = append(content, item)
     }
@@ -68,15 +63,6 @@ func non_recursion_content(path string) []string {
         content = append(content, file.Name())
     }
     return content
-}
-
-func search_in_str_arr(arr []string, val string) bool {
-    for _, item := range arr {
-        if item == val {
-            return true
-        }
-    }
-    return false
 }
 
 func main() {
